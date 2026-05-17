@@ -28,6 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_nav.h"
 #include "bg_saga.h"
 #include "b_local.h"
+#include "g_stats.h"
 #include "game/bg_public.h"
 #include "qcommon/game_version.h"
 
@@ -1788,6 +1789,8 @@ void LogExit( const char *string ) {
 		trap->SendConsoleCommand( EXEC_APPEND, (won) ? "spWin\n" : "spLose\n" );
 	}
 	*/
+
+	G_PrintMatchStats();
 }
 
 qboolean gDidDuelStuff = qfalse; //gets reset on game reinit
