@@ -37,12 +37,12 @@ static void StripColorCodes(const char *in, char *out, int outSize) {
 }
 
 static void SendToAll(const char *msg) {
-	trap->SendServerCommand(-1, va("print \"%s\\n\"", msg));
+	trap->SendServerCommand(-1, va("print \"%s\n\"", msg));
 	G_LogPrintf("%s\n", msg);
 }
 
 static void SendToClient(int clientNum, const char *msg) {
-	trap->SendServerCommand(clientNum, va("print \"%s\\n\"", msg));
+	trap->SendServerCommand(clientNum, va("print \"%s\n\"", msg));
 	G_LogPrintf("%s\n", msg);
 }
 
