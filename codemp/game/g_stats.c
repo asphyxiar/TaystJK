@@ -54,7 +54,6 @@ void G_PrintMatchStats(void) {
 	char		timeBuf[16];
 	matchStat_t tmp;
 
-	// Gather stats for all active non-spectator clients
 	for (i = 0; i < sv_maxclients.integer && numStats < STATS_MAX_PLAYERS; i++) {
 		gclient_t	*cl = &level.clients[i];
 		matchStat_t *s;
@@ -79,10 +78,8 @@ void G_PrintMatchStats(void) {
 		s->teamKills  = cl->pers.stats.teamKills;
 		s->teamDamage = cl->pers.stats.teamDamageGiven;
 
-		// Impact = (dmgGiven - dmgTaken) + (kills - deaths)*100 - (teamDamage + teamKills*500)
 		s->impact = s->dmgDiff + s->killDiff * 100 - (s->teamDamage + s->teamKills * 500);
 
-		// ELO +/- = impact / 25, capped to -20/+60
 		s->eloChange = s->impact / 25;
 		if (s->eloChange > 60)  s->eloChange = 60;
 		if (s->eloChange < -20) s->eloChange = -20;
@@ -106,59 +103,54 @@ void G_PrintMatchStats(void) {
 		}
 	}
 
-	// --- PERSONAL: send each player their own row ---
+	// --- PERSONAL: compact key/value per player (~45 chars wide) ---
 	for (i = 0; i < numStats; i++) {
 		matchStat_t *s = &stats[i];
 		Com_sprintf(timeBuf, sizeof(timeBuf), "%d:%02d", s->timeSec / 60, s->timeSec % 60);
 
-		SendToClient(s->clientNum, "==========================================================================================================");
-		SendToClient(s->clientNum, "                                                 PERSONAL");
-		SendToClient(s->clientNum, "==========================================================================================================");
-		SendToClient(s->clientNum, "Name             |     T |     K/D |    +/- |       R |         Dmg |     +/- |       R |    D/D |     Imp");
-		SendToClient(s->clientNum, "----------------------------------------------------------------------------------------------------------");
-
-		Com_sprintf(line, sizeof(line),
-			"%-16s | %5s | %4d/%-3d | %+6d | %7.2f | %6d/%-5d | %+6d | %7.2f | %6d | %+6d",
-			s->name, timeBuf,
-			s->kills, s->deaths,
-			s->killDiff,
-			s->kdRatio,
-			s->dmgGiven, s->dmgTaken,
-			s->dmgDiff,
-			s->dmgRatio,
-			s->dmgPerDeath,
-			s->impact);
+		SendToClient(s->clientNum, "=============================================");
+		SendToClient(s->clientNum, "           YOUR MATCH STATS");
+		SendToClient(s->clientNum, "=============================================");
+		Com_sprintf(line, sizeof(line), " %-22s      T: %s", s->name, timeBuf);
 		SendToClient(s->clientNum, line);
+		SendToClient(s->clientNum, "---------------------------------------------");
+		Com_sprintf(line, sizeof(line), " K/D:  %d/%d   Diff: %+d   Ratio: %.2f",
+			s->kills, s->deaths, s->killDiff, s->kdRatio);
+		SendToClient(s->clientNum, line);
+		Com_sprintf(line, sizeof(line), " Dmg:  %d   Rcvd: %d   Diff: %+d",
+			s->dmgGiven, s->dmgTaken, s->dmgDiff);
+		SendToClient(s->clientNum, line);
+		Com_sprintf(line, sizeof(line), " DmgR: %.2f   D/D: %d",
+			s->dmgRatio, s->dmgPerDeath);
+		SendToClient(s->clientNum, line);
+		if (s->teamKills > 0 || s->teamDamage > 0) {
+			Com_sprintf(line, sizeof(line), " TK: %d   TDmg: %d   (penalty!)",
+				s->teamKills, s->teamDamage);
+			SendToClient(s->clientNum, line);
+		}
+		Com_sprintf(line, sizeof(line), " Impact: %+d", s->impact);
+		SendToClient(s->clientNum, line);
+		SendToClient(s->clientNum, "=============================================");
 	}
 
-	// --- GLOBAL: send to all clients and server console ---
-	SendToAll("==================================================================================================================================");
-	SendToAll("                                                              GLOBAL");
-	SendToAll("==================================================================================================================================");
-	SendToAll("Name             |     T |     K/D |    +/- |       R |         Dmg |     +/- |       R |    D/D |     Imp |      TK |        TDmg");
-	SendToAll("----------------------------------------------------------------------------------------------------------------------------------");
-
+	// --- GLOBAL: compact table (~55 chars wide) ---
+	SendToAll("=======================================================");
+	SendToAll("                  MATCH RESULTS");
+	SendToAll("=======================================================");
+	SendToAll(" # Name               K/D    Dmg   Rcvd    Imp");
+	SendToAll("-------------------------------------------------------");
 	for (i = 0; i < numStats; i++) {
 		matchStat_t *s = &stats[i];
-		Com_sprintf(timeBuf, sizeof(timeBuf), "%d:%02d", s->timeSec / 60, s->timeSec % 60);
-
-		Com_sprintf(line, sizeof(line),
-			"%-16s | %5s | %4d/%-3d | %+6d | %7.2f | %6d/%-5d | %+6d | %7.2f | %6d | %+6d | %4d/%-3d | %8d/%-3d",
-			s->name, timeBuf,
-			s->kills, s->deaths,
-			s->killDiff,
-			s->kdRatio,
-			s->dmgGiven, s->dmgTaken,
-			s->dmgDiff,
-			s->dmgRatio,
-			s->dmgPerDeath,
-			s->impact,
-			s->teamKills, 0,
-			s->teamDamage, 0);
+		char kd[16];
+		Com_sprintf(kd, sizeof(kd), "%d/%d", s->kills, s->deaths);
+		Com_sprintf(line, sizeof(line), "%2d %-18s %-6s %5d  %5d  %+5d",
+			i + 1, s->name, kd,
+			s->dmgGiven, s->dmgTaken, s->impact);
 		SendToAll(line);
 	}
+	SendToAll("=======================================================");
 
-	// --- HIGHLIGHTS ---
+	// --- HIGHLIGHTS (unchanged) ---
 	{
 		int mvpIdx      = 0;
 		int mostDmgIdx  = 0;
@@ -172,14 +164,14 @@ void G_PrintMatchStats(void) {
 		int teamWarnIdx = -1;
 
 		for (i = 1; i < numStats; i++) {
-			if (stats[i].impact     > stats[mvpIdx].impact)      mvpIdx      = i;
-			if (stats[i].dmgGiven   > stats[mostDmgIdx].dmgGiven) mostDmgIdx  = i;
-			if (stats[i].killDiff   > stats[mostFragIdx].killDiff) mostFragIdx = i;
-			if (stats[i].kdRatio    > stats[bestKDIdx].kdRatio)   bestKDIdx   = i;
-			if (stats[i].dmgRatio   > stats[bestDmgRIdx].dmgRatio) bestDmgRIdx = i;
-			if (stats[i].dmgPerDeath > stats[bestDDIdx].dmgPerDeath) bestDDIdx  = i;
-			if (stats[i].dmgTaken   > stats[tankIdx].dmgTaken)   tankIdx     = i;
-			if (stats[i].impact     < stats[worstIdx].impact)    worstIdx    = i;
+			if (stats[i].impact      > stats[mvpIdx].impact)       mvpIdx      = i;
+			if (stats[i].dmgGiven    > stats[mostDmgIdx].dmgGiven)  mostDmgIdx  = i;
+			if (stats[i].killDiff    > stats[mostFragIdx].killDiff)  mostFragIdx = i;
+			if (stats[i].kdRatio     > stats[bestKDIdx].kdRatio)    bestKDIdx   = i;
+			if (stats[i].dmgRatio    > stats[bestDmgRIdx].dmgRatio)  bestDmgRIdx = i;
+			if (stats[i].dmgPerDeath > stats[bestDDIdx].dmgPerDeath) bestDDIdx   = i;
+			if (stats[i].dmgTaken    > stats[tankIdx].dmgTaken)     tankIdx     = i;
+			if (stats[i].impact      < stats[worstIdx].impact)      worstIdx    = i;
 
 			if (stats[i].teamKills == 0 && stats[i].teamDamage == 0) {
 				if (cleanIdx < 0 || stats[i].dmgGiven > stats[cleanIdx].dmgGiven)
@@ -191,7 +183,6 @@ void G_PrintMatchStats(void) {
 					teamWarnIdx = i;
 			}
 		}
-		// also check index 0 for clean
 		if (stats[0].teamKills == 0 && stats[0].teamDamage == 0) {
 			if (cleanIdx < 0 || stats[0].dmgGiven > stats[cleanIdx].dmgGiven)
 				cleanIdx = 0;
@@ -208,30 +199,24 @@ void G_PrintMatchStats(void) {
 		SendToAll("   Award | Player           |            Value | Note        ");
 		SendToAll("-------------------------------------------------------------");
 
-		Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "MVP",     stats[mvpIdx].name,      stats[mvpIdx].impact,      "impact");    SendToAll(line);
-		Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "Damage",  stats[mostDmgIdx].name,  stats[mostDmgIdx].dmgGiven, "dealt");     SendToAll(line);
-		Com_sprintf(line, sizeof(line), "%8s | %-16s | %+16d | %-12s", "Frags",  stats[mostFragIdx].name, stats[mostFragIdx].killDiff,"diff");      SendToAll(line);
-
+		Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "MVP",      stats[mvpIdx].name,      stats[mvpIdx].impact,        "impact");   SendToAll(line);
+		Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "Damage",   stats[mostDmgIdx].name,  stats[mostDmgIdx].dmgGiven,   "dealt");    SendToAll(line);
+		Com_sprintf(line, sizeof(line), "%8s | %-16s | %+16d | %-12s", "Frags",   stats[mostFragIdx].name, stats[mostFragIdx].killDiff,   "diff");     SendToAll(line);
 		Com_sprintf(line, sizeof(line), "%8s | %-16s | %4d/%-3d [%.2f] | %-12s",
 			"K/D", stats[bestKDIdx].name,
 			stats[bestKDIdx].kills, stats[bestKDIdx].deaths, stats[bestKDIdx].kdRatio, "ratio");
 		SendToAll(line);
-
 		Com_sprintf(line, sizeof(line), "%8s | %-16s | %6d/%-5d [%.2f] | %-12s",
 			"DmgRatio", stats[bestDmgRIdx].name,
 			stats[bestDmgRIdx].dmgGiven, stats[bestDmgRIdx].dmgTaken, stats[bestDmgRIdx].dmgRatio, "ratio");
 		SendToAll(line);
-
-		Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "D/D",     stats[bestDDIdx].name,   stats[bestDDIdx].dmgPerDeath, "per death"); SendToAll(line);
-
+		Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "D/D",      stats[bestDDIdx].name,   stats[bestDDIdx].dmgPerDeath,  "per death"); SendToAll(line);
 		if (cleanIdx >= 0) {
 			Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "Clean", stats[cleanIdx].name, stats[cleanIdx].dmgGiven, "0 TK, 0 TDmg");
 			SendToAll(line);
 		}
-
-		Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "Tank",    stats[tankIdx].name,     stats[tankIdx].dmgTaken,   "taken");     SendToAll(line);
-		Com_sprintf(line, sizeof(line), "%8s | %-16s | %+16d | %-12s", "Punished",stats[worstIdx].name,   stats[worstIdx].impact,    "impact");    SendToAll(line);
-
+		Com_sprintf(line, sizeof(line), "%8s | %-16s | %16d | %-12s", "Tank",     stats[tankIdx].name,     stats[tankIdx].dmgTaken,      "taken");    SendToAll(line);
+		Com_sprintf(line, sizeof(line), "%8s | %-16s | %+16d | %-12s", "Punished", stats[worstIdx].name,   stats[worstIdx].impact,        "impact");   SendToAll(line);
 		if (teamWarnIdx >= 0) {
 			Com_sprintf(line, sizeof(line), "%8s | %-16s | %d TK, %d TDmg | %-12s",
 				"TeamWarn", stats[teamWarnIdx].name,
