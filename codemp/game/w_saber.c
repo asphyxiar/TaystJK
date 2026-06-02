@@ -3875,6 +3875,12 @@ static QINLINE int SaberKickTweak(gentity_t *self)
 }
 
 static QINLINE qboolean WP_SaberCanBlockSwing(int ourStr, int attackStr);
+
+// Single roll for g_reduceSaberBlock — called from all saber block paths
+static QINLINE qboolean G_SaberBlockDenied(void) {
+	return (qboolean)(g_reduceSaberBlock.integer > 0 && Q_irand(1, 100) <= g_reduceSaberBlock.integer);
+}
+
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate )
 {
 	static trace_t tr;
@@ -4776,6 +4782,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		if (!SaberSPStyle(self)//let's trying making blocks have to be blocked by a saber
 			&& g_entities[tr.entityNum].client
 			&& !unblockable
+			&& !G_SaberBlockDenied()
 			&& WP_SaberCanBlock(&g_entities[tr.entityNum], tr.endpos, 0, MOD_SABER, qfalse, attackStr))
 		{//hit a client who blocked the attack (fake: didn't actually hit their saber)
 			if (dmg <= SABER_NONATTACK_DAMAGE)
@@ -4982,7 +4989,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 			if (!SaberSPStyle(self) && !WP_SaberCanBlockSwing(otherOwner->client->ps.fd.saberAnimLevel, attackStr)) //Skip block during swing maybe, only if MP dmgs are on ofc. JAPRO reduce saberblock
 				return qfalse;
 
-			if (!SaberSPStyle(self) && g_reduceSaberBlock.integer > 0 && Q_irand(1, 100) <= g_reduceSaberBlock.integer)
+			if (!SaberSPStyle(self) && G_SaberBlockDenied())
 				return qfalse;
 
 			if ( SaberSPStyle(self) )
@@ -6171,7 +6178,7 @@ static QINLINE qboolean CheckThrownSaberDamaged(gentity_t *saberent, gentity_t *
 
 			if (tr.fraction == 1 || tr.entityNum == ent->s.number)
 			{ //Slice them
-				if (!saberOwner->client->ps.isJediMaster && WP_SaberCanBlock(ent, tr.endpos, 0, MOD_SABER, qfalse, 999))
+				if (!saberOwner->client->ps.isJediMaster && !G_SaberBlockDenied() && WP_SaberCanBlock(ent, tr.endpos, 0, MOD_SABER, qfalse, 999))
 				{ //they blocked it
 					WP_SaberBlockNonRandom(ent, tr.endpos, qfalse);
 
