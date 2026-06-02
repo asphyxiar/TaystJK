@@ -4982,6 +4982,9 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 			if (!SaberSPStyle(self) && !WP_SaberCanBlockSwing(otherOwner->client->ps.fd.saberAnimLevel, attackStr)) //Skip block during swing maybe, only if MP dmgs are on ofc. JAPRO reduce saberblock
 				return qfalse;
 
+			if (!SaberSPStyle(self) && g_reduceSaberBlock.integer > 0 && Q_irand(1, 100) <= g_reduceSaberBlock.integer)
+				return qfalse;
+
 			if ( SaberSPStyle(self) )
 			{//use SP-style blade-collision test
 				if ( !WP_SabersIntersect( self, rSaberNum, rBladeNum, otherOwner, qfalse ) )
@@ -9756,11 +9759,6 @@ int WP_SaberCanBlock(gentity_t *self, vec3_t point, int dflags, int mod, qboolea
 		return qfalse;
 	}
 	//end
-
-	// Random percentage-based block denial (like JA+ g_reducesaberblock)
-	if (!SaberSPStyle(self) && g_reduceSaberBlock.integer > 0 && Q_irand(1, 100) <= g_reduceSaberBlock.integer) {
-		return qfalse;
-	}
 	//Here if their attack is weaker than our style
 
 	if (self->client->ps.saberMove != LS_READY && !self->client->ps.saberBlocking)
