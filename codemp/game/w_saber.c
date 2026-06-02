@@ -9756,6 +9756,11 @@ int WP_SaberCanBlock(gentity_t *self, vec3_t point, int dflags, int mod, qboolea
 		return qfalse;
 	}
 	//end
+
+	// Random percentage-based block denial (like JA+ g_reducesaberblock)
+	if (!SaberSPStyle(self) && g_reduceSaberBlock.integer > 0 && Q_irand(1, 100) <= g_reduceSaberBlock.integer) {
+		return qfalse;
+	}
 	//Here if their attack is weaker than our style
 
 	if (self->client->ps.saberMove != LS_READY && !self->client->ps.saberBlocking)
