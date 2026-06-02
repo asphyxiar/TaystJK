@@ -7522,7 +7522,7 @@ void saberFirstThrown(gentity_t *saberent)
 
 		VectorNormalize(dir);
 
-		VectorScale(dir, 500, saberent->s.pos.trDelta );
+		VectorScale(dir, g_saberThrowSpeed.integer, saberent->s.pos.trDelta );
 		saberent->s.pos.trTime = level.time;
 
 		if (saberOwn->client->ps.fd.forcePowerLevel[FP_SABERTHROW] >= FORCE_LEVEL_3)

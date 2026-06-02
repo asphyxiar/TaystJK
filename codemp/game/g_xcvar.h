@@ -192,6 +192,7 @@ XCVAR_DEF( g_neutralFlagTimer,			"10000",		NULL,				CVAR_ARCHIVE,									qtrue)
 //JAPRO Saber
 XCVAR_DEF( g_tweakSaber,				"0",			CVU_TweakSaber,		CVAR_ARCHIVE,									qtrue )
 XCVAR_DEF( g_reduceSaberBlock,			"0",			NULL,				CVAR_ARCHIVE,									qtrue ) // 1-100: % chance to deny a block. 0 = off. ~30 feels like JA+.
+XCVAR_DEF( g_saberThrowSpeed,			"500",			NULL,				CVAR_ARCHIVE,									qtrue ) // Initial saber throw speed. Default 500. JA+ felt like ~700.
 XCVAR_DEF( g_backslashDamageScale,		"1",			NULL,				CVAR_ARCHIVE,									qtrue )
 XCVAR_DEF( g_maxSaberDefense,			"-1",			NULL,				CVAR_ARCHIVE|CVAR_LATCH,						qtrue )
 XCVAR_DEF( g_saberTouchDmg,				"0",			NULL,				CVAR_ARCHIVE,									qtrue )
