@@ -4290,24 +4290,14 @@ static qboolean PM_CheckJump( void )
 #endif
 
 #if 1
-#ifdef _GAME
-			// WALLRUN DEBUG - remove after testing
-			else if ( pm->cmd.upmove >= 10 ) {
-				float groundDist = PM_WalkableGroundDistance();
-				trap->SendServerCommand( pm->ps->clientNum, va("print \"WR_DBG: fwd=%d lev=%d gnd=%.1f anim=%d jheld=%d\n\"",
-					pm->cmd.forwardmove,
-					pm->ps->fd.forcePowerLevel[FP_LEVITATION],
-					groundDist,
-					pm->ps->legsAnim,
-					(pm->ps->pm_flags & PMF_JUMP_HELD) ? 1 : 0
-				));
-			}
-#endif
 			else if ( pm->cmd.forwardmove > 0 //pushing forward -- this is used for wallruns i guess?
 				//&& pm->ps->fd.forceRageRecoveryTime < pm->cmd.serverTime	//not in a force Rage recovery period //JAPRO - Serverside + Clientside - Allow wallrun in rage recovery
 				&& pm->ps->fd.forcePowerLevel[FP_LEVITATION] > FORCE_LEVEL_1
 				&& PM_WalkableGroundDistance() <= 150 //unfortunately we do not have a happy ground timer like SP (this would use up more bandwidth if we wanted prediction workign right), so we'll just use the actual ground distance.
-				&& (pm->ps->legsAnim == BOTH_JUMP1 || pm->ps->legsAnim == BOTH_INAIR1 ) )//not in a flip or spin or anything
+				&& (pm->ps->legsAnim == BOTH_JUMP1 || pm->ps->legsAnim == BOTH_INAIR1
+					|| pm->ps->legsAnim == BOTH_RUN1 || pm->ps->legsAnim == BOTH_RUN2
+					|| pm->ps->legsAnim == BOTH_RUNBACK1 || pm->ps->legsAnim == BOTH_RUNBACK2
+					|| pm->ps->legsAnim == BOTH_WALK1 || pm->ps->legsAnim == BOTH_WALK2) )//allow wall run from run/walk anims too
 			{//run up wall, flip backwards
 				if ( allowWallRuns ) {
 					//FIXME: have to be moving... make sure it's opposite the wall... or at least forward?
