@@ -5143,6 +5143,13 @@ void ClientThink_real( gentity_t *ent ) {
 #endif
 	}
 
+	// Clear PMF_JUMP_HELD if upmove is below threshold before each pmove call.
+	// Fixes scripts where wait 2 doesn't work because the flag persists
+	// across multiple usercmds processed in a single server frame.
+	if (pmove.cmd.upmove < 10) {
+		pmove.ps->pm_flags &= ~PMF_JUMP_HELD;
+	}
+
 	Pmove (&pmove);
 
 	if (ent->client->solidHack)

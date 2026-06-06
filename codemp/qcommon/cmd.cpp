@@ -41,6 +41,7 @@ typedef struct cmd_s {
 } cmd_t;
 
 int			cmd_wait;
+int			cmd_waitFrame;
 cmd_t		cmd_text;
 byte		cmd_text_buf[MAX_CMD_BUFFER];
 
@@ -277,9 +278,14 @@ void Cbuf_Execute (void)
 	while (cmd_text.cursize)
 	{
 		if ( cmd_wait > 0 ) {
+			// only decrement once per engine frame so wait 2 = 2 frames
+			// regardless of how many times the command buffer is executed per frame
+			if ( cmd_waitFrame != com_frameNumber ) {
+				cmd_waitFrame = com_frameNumber;
+				cmd_wait--;
+			}
 			// skip out while text still remains in buffer, leaving it
 			// for next frame
-			cmd_wait--;
 			break;
 		}
 
