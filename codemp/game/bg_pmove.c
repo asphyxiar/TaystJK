@@ -4290,6 +4290,19 @@ static qboolean PM_CheckJump( void )
 #endif
 
 #if 1
+#ifdef _GAME
+			// WALLRUN DEBUG - remove after testing
+			else if ( pm->cmd.upmove >= 10 ) {
+				float groundDist = PM_WalkableGroundDistance();
+				trap->SendServerCommand( pm->ps->clientNum, va("print \"WR_DBG: fwd=%d lev=%d gnd=%.1f anim=%d jheld=%d\n\"",
+					pm->cmd.forwardmove,
+					pm->ps->fd.forcePowerLevel[FP_LEVITATION],
+					groundDist,
+					pm->ps->legsAnim,
+					(pm->ps->pm_flags & PMF_JUMP_HELD) ? 1 : 0
+				));
+			}
+#endif
 			else if ( pm->cmd.forwardmove > 0 //pushing forward -- this is used for wallruns i guess?
 				//&& pm->ps->fd.forceRageRecoveryTime < pm->cmd.serverTime	//not in a force Rage recovery period //JAPRO - Serverside + Clientside - Allow wallrun in rage recovery
 				&& pm->ps->fd.forcePowerLevel[FP_LEVITATION] > FORCE_LEVEL_1
